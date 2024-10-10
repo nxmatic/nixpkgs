@@ -35,6 +35,7 @@ mkAppleDerivation {
 
   outputs = [
     "out"
+    "locale"
     "ps"
     "man"
   ];
@@ -85,9 +86,15 @@ mkAppleDerivation {
     (lib.mesonOption "sdk_version" (lib.getVersion apple-sdk))
   ];
 
+  postBuild = ''
+    # Build the locales TODO
+  '';
+
   postInstall = ''
+    moveToOutput share/locale "$locale"
     moveToOutput bin/ps "$ps"
     ln -s "$ps/bin/ps" "$out/bin/ps"
+    mkdir -p "$locale/share/locale"
   '';
 
   meta = {

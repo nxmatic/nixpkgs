@@ -277,9 +277,7 @@ stdenvs
   ] mkStub;
 
   callPackage = newScope (
-    lib.optionalAttrs stdenv.hostPlatform.isDarwin (
-      stdenvs // { inherit (pkgs.darwin.apple_sdk_11_0) rustPlatform; }
-    )
+    lib.optionalAttrs stdenv.isDarwin stdenvs // { inherit (pkgs.darwin.apple_sdk_11_0) rustPlatform; }
   );
 
   rustPlatform =

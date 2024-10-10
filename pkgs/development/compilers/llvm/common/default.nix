@@ -346,7 +346,13 @@ let
   tools = lib.makeExtensible (
     tools:
     let
-      callPackage = newScope (tools // args // metadata);
+      callPackage = newScope (
+        tools
+        // args
+        // metadata
+        # Previously monorepoSrc was erroneously not being passed through.
+        // lib.optionalAttrs (lib.versionOlder metadata.release_version "14") { monorepoSrc = null; } # Preserve a bug during #307211, TODO: remove; causes llvm 13 rebuild.
+      );
       clangVersion =
         if (lib.versionOlder metadata.release_version "16") then
           metadata.release_version
@@ -355,7 +361,7 @@ let
       mkExtraBuildCommands0 = cc: ''
         rsrc="$out/resource-root"
         mkdir "$rsrc"
-        ln -s "${lib.getLib cc}/lib/clang/${clangVersion}/include" "$rsrc"
+        ln -s "${cc.lib}/lib/clang/${clangVersion}/include" "$rsrc"
         echo "-resource-dir=$rsrc" >> $out/nix-support/cc-cflags
       '';
       mkExtraBuildCommandsBasicRt =
@@ -529,24 +535,8 @@ let
             # mis-compilation in firefox.
             # See: https://bugzilla.mozilla.org/show_bug.cgi?id=1741454
             (metadata.getVersionFile "clang/revert-malloc-alignment-assumption.patch")
-          # This patch prevents global system header directories from
-          # leaking through on non‐NixOS Linux. However, on macOS, the
-          # SDK path is used as the sysroot, and forcing `-nostdlibinc`
-          # breaks `-isysroot` with an unwrapped compiler. As macOS has
-          # no `/usr/include`, there’s essentially no risk to skipping
-          # the patch there. It’s possible that Homebrew headers in
-          # `/usr/local/include` might leak through to unwrapped
-          # compilers being used without an SDK set or something, but
-          # it hopefully shouldn’t matter.
-          #
-          # TODO: Figure out a better solution to this whole problem so
-          # that we won’t have to choose between breaking unwrapped
-          # compilers breaking libclang when we can do Linux‐to‐Darwin
-          # cross‐compilation again.
-          ++ lib.optional (
-            !args.stdenv.hostPlatform.isDarwin || !args.stdenv.targetPlatform.isDarwin
-          ) ./clang/add-nostdlibinc-flag.patch
           ++ [
+            ./clang/add-nostdlibinc-flag.patch
             (substituteAll {
               src =
                 if (lib.versionOlder metadata.release_version "16") then
@@ -557,7 +547,7 @@ let
             })
           ]
           # Backport version logic from Clang 16. This is needed by the following patch.
-          ++ lib.optional (lib.versions.major metadata.release_version == "15") (fetchpatch {
+          ++ lib.optional (lib.versionOlder (lib.versions.major metadata.release_version) "16") (fetchpatch {
             name = "clang-darwin-Use-consistent-version-define-stringifying-logic.patch";
             url = "https://github.com/llvm/llvm-project/commit/60a33ded751c86fff9ac1c4bdd2b341fbe4b0649.patch?full_index=1";
             includes = [ "lib/Basic/Targets/OSTargets.cpp" ];
@@ -566,19 +556,13 @@ let
           })
           # Backport `__ENVIRONMENT_OS_VERSION_MIN_REQUIRED__` support from Clang 17.
           # This is needed by newer SDKs (14+).
-          ++
-            lib.optional
-              (
-                lib.versionAtLeast (lib.versions.major metadata.release_version) "15"
-                && lib.versionOlder (lib.versions.major metadata.release_version) "17"
-              )
-              (fetchpatch {
-                name = "clang-darwin-An-OS-version-preprocessor-define.patch";
-                url = "https://github.com/llvm/llvm-project/commit/c8e2dd8c6f490b68e41fe663b44535a8a21dfeab.patch?full_index=1";
-                includes = [ "lib/Basic/Targets/OSTargets.cpp" ];
-                stripLen = 1;
-                hash = "sha256-Vs32kql7N6qtLqc12FtZHURcbenA7+N3E/nRRX3jdig=";
-              })
+          ++ lib.optional (lib.versionOlder (lib.versions.major metadata.release_version) "17") (fetchpatch {
+            name = "clang-darwin-An-OS-version-preprocessor-define.patch";
+            url = "https://github.com/llvm/llvm-project/commit/c8e2dd8c6f490b68e41fe663b44535a8a21dfeab.patch?full_index=1";
+            includes = [ "lib/Basic/Targets/OSTargets.cpp" ];
+            stripLen = 1;
+            hash = "sha256-Vs32kql7N6qtLqc12FtZHURcbenA7+N3E/nRRX3jdig=";
+          })
           ++ lib.optional (lib.versions.major metadata.release_version == "18") (fetchpatch {
             name = "tweak-tryCaptureVariable-for-unevaluated-lambdas.patch";
             url = "https://github.com/llvm/llvm-project/commit/3d361b225fe89ce1d8c93639f27d689082bd8dad.patch";
@@ -665,7 +649,7 @@ let
                 { substituteAll, libclang }:
                 (substituteAll {
                   src = metadata.getVersionFile "lldb/resource-dir.patch";
-                  clangLibDir = "${lib.getLib libclang}/lib";
+                  clangLibDir = "${libclang.lib}/lib";
                 }).overrideAttrs
                   (_: _: { name = "resource-dir.patch"; })
               ) { };
@@ -962,10 +946,6 @@ let
           (fetchpatch {
             url = "https://github.com/llvm/llvm-project/commit/abc2eae68290c453e1899a94eccc4ed5ea3b69c1.patch";
             hash = "sha256-oxCxOjhi5BhNBEraWalEwa1rS3Mx9CuQgRVZ2hrbd7M=";
-          })
-          (fetchpatch {
-            url = "https://github.com/llvm/llvm-project/commit/5909979869edca359bcbca74042c2939d900680e.patch";
-            hash = "sha256-l4rQHYbblEADBXaZIdqTG0sZzH4fEQvYiqhLYNZDMa8=";
           })
         ];
       };

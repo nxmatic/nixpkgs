@@ -118,7 +118,7 @@ impure-cmds // apple-source-packages // apple-source-headers // stubs // {
     extraBuildInputs = [];
   };
 
-  inherit (self.adv_cmds) ps;
+  inherit (self.adv_cmds) locale ps;
 
   binutils-unwrapped = callPackage ../os-specific/darwin/binutils {
     inherit (pkgs) cctools;
@@ -206,6 +206,15 @@ impure-cmds // apple-source-packages // apple-source-headers // stubs // {
 
   lsusb = callPackage ../os-specific/darwin/lsusb { };
 
+  moltenvk = callPackage ../os-specific/darwin/moltenvk {
+    stdenv = pkgs.overrideSDK stdenv {
+      darwinMinVersion = "10.15";
+      darwinSdkVersion = "12.3";
+    };
+    inherit (apple_sdk.frameworks) AppKit Foundation Metal QuartzCore;
+    inherit (apple_sdk.libs) simd;
+  };
+
   openwith = callPackage ../os-specific/darwin/openwith { };
 
   stubs = pkgs.callPackages ../os-specific/darwin/stubs { };
@@ -222,8 +231,7 @@ impure-cmds // apple-source-packages // apple-source-headers // stubs // {
     xcode_12 xcode_12_0_1 xcode_12_1 xcode_12_2 xcode_12_3 xcode_12_4 xcode_12_5 xcode_12_5_1
     xcode_13 xcode_13_1 xcode_13_2 xcode_13_3 xcode_13_3_1 xcode_13_4 xcode_13_4_1
     xcode_14 xcode_14_1
-    xcode_15 xcode_15_0_1 xcode_15_1 xcode_15_2 xcode_15_3 xcode_15_4
-    xcode_16 xcode_16_1
+    xcode_15 xcode_15_1 xcode_15_2 xcode_15_3 xcode_15_4
     xcode;
 
   xcodeProjectCheckHook = pkgs.makeSetupHook {
@@ -249,7 +257,7 @@ impure-cmds // apple-source-packages // apple-source-headers // stubs // {
       nixos = import ../../nixos {
         configuration = {
           imports = [
-            ../../nixos/modules/profiles/nix-builder-vm.nix
+            ../../nixos/modules/profiles/macos-builder.nix
           ] ++ modules;
 
           # If you need to override this, consider starting with the right Nixpkgs
