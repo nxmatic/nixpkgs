@@ -436,7 +436,7 @@ let format' = format; in let
 
     chmod 755 "$TMPDIR"
     echo "running nixos-install..."
-    nixos-install --root $root --no-bootloader --no-root-passwd \
+    nixos-install --debug --verbose --root $root --no-root-passwd \
       --system ${config.system.build.toplevel} \
       ${if copyChannel then "--channel ${channelSources}" else "--no-channel-copy"} \
       --substituters ""

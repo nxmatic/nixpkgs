@@ -1,7 +1,6 @@
 #! @runtimeShell@
 # shellcheck shell=bash
 
-set -e
 shopt -s nullglob
 
 export PATH=@path@:$PATH

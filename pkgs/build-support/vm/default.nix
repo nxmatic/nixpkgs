@@ -235,6 +235,8 @@ rec {
   vmRunCommand = qemuCommand: writeText "vm-run" ''
     export > saved-env
 
+    set -x
+
     PATH=${coreutils}/bin
     mkdir xchg
     mv saved-env xchg/
@@ -276,6 +278,8 @@ rec {
     fi
 
     eval "$postVM"
+
+    set +x
   '';
 
   /*
