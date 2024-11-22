@@ -1,4 +1,4 @@
-#!/usr/bin/env nix-shell
+x#!/usr/bin/env nix-shell
 #!nix-shell --pure -i python3 -p "python3.withPackages (ps: with ps; [ requests ])"
 
 import json
@@ -6,7 +6,7 @@ import re
 import requests
 import sys
 
-feature_versions = (8, 11, 17, 21, 23)
+feature_versions = (8, 11, 16, 17, 18, 19, 20, 21, 22)
 oses = ("mac", "linux", "alpine-linux")
 types = ("jre", "jdk")
 impls = ("hotspot",)
