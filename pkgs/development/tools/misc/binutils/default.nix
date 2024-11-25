@@ -3,6 +3,7 @@ let
 in
 
 { stdenv
+, autoreconfHook # backport
 , autoconf269, automake, libtool
 , bison
 , buildPackages
